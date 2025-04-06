@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>قیمت لحظه‌ای بیت‌کوین | نوبیتکس</title>
+  <meta name="theme-color" content="#784ed1">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js" integrity="sha512-ElRFoEQdI5Ht6kZvyzXhYG9NqjtkmlkfYk0wr6wHxU9JEHakS7UJZNeml5ALk+8IKlU6jDgMabC3vkumRokgJA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "YekanBakh" !important;
+}
+
+body {
+  background-color: #f5f5f5;
+}
+
+.banner {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  background-color: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.logo {
+  height: 32px;
+}
+
+.chart-title {
+  font-size: 20px;
+  font-weight: 700;
+  text-align: right;
+  color: #3d4152;
+  margin: 0;
+}
+
+.time-filters {
+  display: flex;
+  flex-direction: row-reverse; /* Reverse the order */
+  justify-content: space-between;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  background-color: #f5f5f5;
+  padding: 3px;
+}
+
+.time-filter {
+  flex: 1;
+  text-align: center;
+  padding: 10px 0;
+  cursor: pointer;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 14px;
+  color: #3d4152;
+  transition: all 0.2s ease;
+}
+
+.time-filter.active {
+  background-color: #784ed1;
+  color: white;
+}
+
+.price-display {
+  margin-top: 16px;
+  margin-bottom: 16px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.price-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.current-price {
+  font-size: 28px;
+  font-weight: 800;
+  color: #3d4152;
+  text-align: right;
+  direction: rtl;
+}
+
+.change-percent {
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 4px 10px;
+  margin-right: 12px;
+  font-family: "YekanBakh", Tahoma, Arial !important;
+}
+
+.price-title {
+  margin-top: 4px;
+  font-size: 16px;
+  color: #3d4152;
+  text-align: right;
+}
+
+.price-equivalent {
+  color: #70757e;
+  font-size: 14px;
+  margin-top: 4px;
+  text-align: right;
+}
+
+.chart-container {
+  background-color: white;
+  border-radius: 8px;
+  padding: 16px;
+  height: 280px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  position: relative;
+  border: 1px solid #f0f0f0;
+  overflow: hidden; /* Ensure gradient stays within container */
+}
+
+.stats-container {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+  gap: 8px;
+}
+
+.stat-box {
+  flex: 1;
+  background-color: #f9f9f9;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #70757e;
+}
+
+.positive-change {
+  color: #00c076;
+}
+
+.negative-change {
+  color: #fe5850;
+}
+
+.cta-button {
+  margin-top: 24px;
+  background-color: #4b338a;
+  color: white;
+  border: none;
+  padding: 14px 20px;
+  border-radius: 8px;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  width: 100%;
+  text-decoration: none;
+}
+
+.cta-button:hover {
+  background-color: #784ed1;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #70757e;
+}
+
+.error-message {
+  color: #fe5850;
+  text-align: center;
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+#price-websocket-status {
+  font-size: 12px;
+  color: #70757e;
+  text-align: right;
+  margin-top: 4px;
+}
+
+.hidden {
+  display: none;
+}
+
+.flash {
+  animation: price-flash 1s;
+}
+
+@keyframes price-flash {
+  0% { color: #3d4152; }
+  50% { color: #784ed1; }
+  100% { color: #3d4152; }
+}
+
+/* Loading overlay styles */
+#loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.9); /* #ffffff with 90% opacity */
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+}
+
+.loading-logo {
+  width: 240px;
+  height: auto;
+  margin-bottom: 10px;
+}
+
+.loading-tagline {
+  font-size: 18px;
+  font-weight: 500;
+  color: #3d4152;
+  margin-top: 10px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #784ed1;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-top: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Error overlay styles */
+#error-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.95);
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+
+#error-overlay.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.error-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px;
+  border-radius: 20px;
+  background-color: white;
+  box-shadow: 0 15px 40px rgba(120, 78, 209, 0.08);
+  max-width: 90%;
+  width: 320px;
+}
+
+.retry-logo {
+  width: 180px;
+  height: auto;
+  margin-bottom: 28px;
+}
+
+.retry-button {
+  background-color: #784ed1;
+  color: white;
+  border: none;
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  letter-spacing: 0.2px;
+}
+
+.retry-button:hover {
+  background-color: #6a45b8;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(120, 78, 209, 0.15);
+}
+
+.retry-button:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 8px rgba(120, 78, 209, 0.1);
+}
+
+/* Responsive styles */
+@media (max-width: 480px) {
+  .banner {
+    padding: 12px;
+    border-radius: 8px;
+  }
+  
+  .chart-title {
+    font-size: 18px;
+  }
+  
+  .current-price {
+    font-size: 24px;
+  }
+  
+  .time-filter {
+    font-size: 12px;
+    padding: 8px 0;
+  }
+  
+  .main-content {
+    flex-direction: column;
+  }
+  
+  .price-display {
+    width: 100%;
+    margin-bottom: 16px;
+  }
+  
+  .chart-container {
+    width: 100%;
+    height: 200px; /* Reduced height for mobile */
+    max-height: 200px;
+    overflow: hidden;
+  }
+  
+  .stats-container {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    margin-top: 16px;
+  }
+  
+  .stat-box {
+    padding: 8px;
+    min-width: 0;
+  }
+  
+  .stat-value {
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  
+  .stat-label {
+    font-size: 11px;
+  }
+  
+  canvas#priceChart {
+    max-height: 170px !important; /* Force chart height */
+  }
+  
+  .cta-button {
+    padding: 12px 16px;
+    font-size: 15px;
+  }
+  
+  /* Loading overlay responsive styles */
+  .loading-logo {
+    width: 160px;
+  }
+  
+  .loading-tagline {
+    font-size: 15px;
+    padding: 0 20px;
+  }
+  
+  .loading-spinner {
+    width: 30px;
+    height: 30px;
+    border-width: 3px;
+  }
+}
+
+@font-face {
+  font-family: "YekanBakh";
+  src: url("./fonts/YekanBakh-Regular.woff2");
+}
+
+  </style>
+</head>
+<body>
+<!-- Full screen loading overlay -->
+<div id="loading-overlay">
+  <div class="loading-content">
+    <img src="https://nobitex.ir/_nuxt/img/Logo_FA-Dark.b84a3fa.svg" alt="Nobitex Logo" class="loading-logo">
+    <div class="loading-tagline">اولین و بزرگ‌ترین بازار ارز دیجیتال در ایران</div>
+    <div class="loading-spinner"></div>
+  </div>
+</div>
+
+<!-- Retry overlay (designed to feel like a part of the UX) -->
+<div id="error-overlay">
+  <div class="error-content">
+    <img src="https://nobitex.ir/_nuxt/img/Logo_FA-Dark.b84a3fa.svg" alt="Nobitex Logo" class="retry-logo">
+    <button class="retry-button" id="retry-button">مشاهده قیمت لحظه‌ای بیت‌کوین</button>
+  </div>
+</div>
+
+<div class="banner">
+  <div class="header">
+    <div class="chart-title">
+      <strong>قیمت لحظه‌ای بیت‌کوین</strong>
+    </div>
+    <img src="https://nobitex.ir/_nuxt/img/Logo_FA-Dark.b84a3fa.svg" alt="Nobitex Logo" width="157px" height="26px" class="logo">
+  </div>
+  
+  <div class="time-filters">
+    <div class="time-filter" id="year" onclick="changeTimeFrame('year')">سال گذشته</div>
+    <div class="time-filter" id="month" onclick="changeTimeFrame('month')">ماه گذشته</div>
+    <div class="time-filter active" id="day" onclick="changeTimeFrame('day')">۲۴ ساعت اخیر</div>
+  </div>
+  
+  <div class="main-content">
+    <div class="price-display">
+      <div class="price-header">
+        <div class="current-price" id="current-price">در حال بارگذاری...</div>
+        <div class="change-percent positive-change" id="change-percent">٠.٠٠٪ ↑</div>
+      </div>
+      <div class="price-title">قیمت بیت‌کوین</div>
+      <div class="price-equivalent hidden" id="price-equivalent"></div>
+      <div id="price-websocket-status" class="hidden">آخرین بروزرسانی: <span id="last-updated">-</span></div>
+    </div>
+    
+    <div class="chart-container">
+      <canvas id="priceChart"></canvas>
+      <div id="loading" class="loading">در حال بارگذاری نمودار...</div>
+    </div>
+  </div>
+  
+  
+  <a href="https://nobitex.ir/signup/" class="cta-button">خرید بیت‌کوین</a>
+</div>
+  <script>
+// Context for chart
+const ctx = document.getElementById('priceChart').getContext('2d');
+let priceChart;
+let currentTimeFrame = 'day';
+
+// Data storage
+let allPriceData = {
+  day: { labels: [], prices: [] },
+  month: { labels: [], prices: [] },
+  year: { labels: [], prices: [] }
+};
+
+// Current price tracking
+let currentPrice = 0;
+let lastUpdateTime = null;
+
+// Function to format numbers in Persian with commas
+function formatNumber(num) {
+  return new Intl.NumberFormat('fa-IR').format(Math.round(num));
+}
+
+// Format timestamp to Persian time
+function formatTime(timestamp) {
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+// Format date based on timeframe
+function formatDate(timestamp, timeframe) {
+  const date = new Date(timestamp);
+  
+  // For day timeframe, only show hours and minutes without the date
+  if (timeframe === 'day') {
+    return date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+  } else if (timeframe === 'month') {
+    return date.toLocaleDateString('fa-IR', { month: 'short', day: 'numeric' });
+  } else if (timeframe === 'year') {
+    return date.toLocaleDateString('fa-IR', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+}
+
+// Function to update UI with price
+function updatePriceDisplay(usdPrice) {
+  const priceElement = document.getElementById('current-price');
+  
+  priceElement.textContent = `${formatNumber(usdPrice)} تتر (دلار)`;
+  document.getElementById('price-equivalent').textContent = ``;
+  
+  // Update last updated time
+  lastUpdateTime = new Date();
+  document.getElementById('last-updated').textContent = formatTime(lastUpdateTime);
+  document.getElementById('price-websocket-status').classList.remove('hidden');
+}
+
+// Function to update change percentage display
+function updateChangePercentage(changeValue) {
+  const changeEl = document.getElementById('change-percent');
+  const absChange = Math.abs(changeValue).toFixed(2);
+  
+  // Format the number in Persian using the same formatter we use elsewhere
+  const formattedChange = formatNumber(absChange);
+  
+  changeEl.textContent = `${formattedChange}٪ ${changeValue >= 0 ? '↑' : '↓'}`;
+  
+  if (changeValue >= 0) {
+    changeEl.className = 'change-percent positive-change';
+  } else {
+    changeEl.className = 'change-percent negative-change';
+  }
+}
+
+// We've removed the stats display function since we no longer show highest/lowest prices
+
+// Initialize the chart with loading state
+function initChart() {
+  const chartConfig = {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'قیمت بیت‌کوین',
+        data: [],
+        fill: true,
+        backgroundColor: function(context) {
+          const chart = context.chart;
+          const {ctx, chartArea} = chart;
+          if (!chartArea) {
+            // This is called when the chart is not yet initialized
+            return null;
+          }
+          var gradient = ctx.createLinearGradient(0, 0, 0, chartArea.bottom);
+          gradient.addColorStop(0, 'rgba(120, 78, 209, 0.8)');    // Darker purple at top
+          gradient.addColorStop(1, 'rgba(120, 78, 209, 0.1)');    // Lighter purple at bottom
+          return gradient;
+        },
+        borderColor: '#784ed1',
+        borderWidth: 2,
+        pointRadius: 0,                     // Remove dots for data points
+        pointHoverRadius: 6,                // Still show points on hover
+        pointHoverBackgroundColor: '#00c076',
+        tension: 0.4                        // Slightly smoother curve
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          enabled: true,
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          titleColor: '#0c2275',
+          bodyColor: '#1e293b',
+          titleFont: {
+            family: 'Vazirmatn',
+            size: 14,
+            weight: 'bold'
+          },
+          bodyFont: {
+            family: 'Vazirmatn',
+            size: 13
+          },
+          padding: 12,
+          borderColor: '#e2e8f0',
+          borderWidth: 1,
+          callbacks: {
+            title: function(context) {
+              return context[0].label;
+            },
+            label: function(context) {
+              const price = context.raw;
+              const usdPrice = `${formatNumber(price)} تتر (دلار)`;
+              
+              // Get the date for additional context in tooltips
+              let dateInfo = '';
+              if (currentTimeFrame === 'day') {
+                // No additional date info needed for day view (already showing time)
+              } else {
+                const timestamp = allPriceData[currentTimeFrame].timestamps[context.dataIndex];
+                const date = new Date(timestamp);
+                if (currentTimeFrame === 'month') {
+                  dateInfo = date.toLocaleDateString('fa-IR', { year: 'numeric', month: 'long', day: 'numeric' });
+                } else if (currentTimeFrame === 'year') {
+                  dateInfo = date.toLocaleDateString('fa-IR', { year: 'numeric', month: 'long', day: 'numeric' });
+                }
+              }
+              
+              const tooltipLines = [`قیمت: ${usdPrice}`];
+              if (dateInfo) {
+                tooltipLines.push(`تاریخ: ${dateInfo}`);
+              }
+              
+              return tooltipLines;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          display: true,
+          ticks: {
+            font: {
+              family: 'Vazirmatn'
+            }
+          },
+          grid: {
+            display: false
+          }
+        },
+        y: {
+          display: true,
+          position: 'right',
+          ticks: {
+            callback: function(value) {
+              return `${formatNumber(value)}`;
+            },
+            font: {
+              family: 'Vazirmatn'
+            }
+          },
+          grid: {
+            color: '#f0f0f0'
+          }
+        }
+      }
+    }
+  };
+  
+  priceChart = new Chart(ctx, chartConfig);
+}
+
+// Fetch all historical data at once
+async function fetchAllHistoricalData() {
+  document.getElementById('loading').style.display = 'flex';
+  
+  try {
+    // Get current price from CryptoCompare
+    const currentResponse = await fetch('https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=USD&extraParams=nobitex');
+    
+    // Check if the response is ok
+    if (!currentResponse.ok) {
+      console.error(`Failed to fetch current price: ${currentResponse.status} ${currentResponse.statusText}`);
+      throw new Error(`Failed to fetch current Bitcoin price: ${currentResponse.status}`);
+    }
+    
+    const currentData = await currentResponse.json();
+    
+    // Verify we got valid data
+    if (!currentData.USD || typeof currentData.USD !== 'number') {
+      console.error('Incomplete or invalid price data received');
+      throw new Error('Invalid Bitcoin price data');
+    }
+    
+    const currentBTCPrice = currentData.USD;
+    
+    // Get 24h price change from CryptoCompare
+    const changeResponse = await fetch('https://min-api.cryptocompare.com/data/pricemultifull?fsyms=BTC&tsyms=USD&extraParams=nobitex');
+    
+    if (!changeResponse.ok) {
+      throw new Error(`Failed to fetch price change: ${changeResponse.status}`);
+    }
+    
+    const changeData = await changeResponse.json();
+    const priceChange24h = changeData.RAW.BTC.USD.CHANGEPCT24HOUR || 0;
+    
+    // Get historical data from CryptoCompare
+    // Last 24 hours - hourly data
+    const dayResponse = await fetch('https://min-api.cryptocompare.com/data/v2/histohour?fsym=BTC&tsym=USD&limit=24&extraParams=nobitex');
+    
+    // Last month - daily data
+    const monthResponse = await fetch('https://min-api.cryptocompare.com/data/v2/histoday?fsym=BTC&tsym=USD&limit=30&extraParams=nobitex');
+    
+    // Last year - daily data
+    const yearResponse = await fetch('https://min-api.cryptocompare.com/data/v2/histoday?fsym=BTC&tsym=USD&limit=365&extraParams=nobitex');
+    
+    // Check if all responses are ok
+    if (!dayResponse.ok || !monthResponse.ok || !yearResponse.ok) {
+      throw new Error('Failed to fetch historical data');
+    }
+    
+    const dayData = await dayResponse.json();
+    const monthData = await monthResponse.json();
+    const yearData = await yearResponse.json();
+    
+    // Validate the data structure for each response
+    if (!dayData.Data || !dayData.Data.Data || !Array.isArray(dayData.Data.Data) || dayData.Data.Data.length === 0 ||
+        !monthData.Data || !monthData.Data.Data || !Array.isArray(monthData.Data.Data) || monthData.Data.Data.length === 0 ||
+        !yearData.Data || !yearData.Data.Data || !Array.isArray(yearData.Data.Data) || yearData.Data.Data.length === 0) {
+      throw new Error('Invalid or incomplete historical data');
+    }
+    
+    // Process data
+    allPriceData.day = processCryptoCompareData(dayData.Data.Data, 'day');
+    allPriceData.month = processCryptoCompareData(monthData.Data.Data, 'month');
+    allPriceData.year = processCryptoCompareData(yearData.Data.Data, 'year');
+    
+    // Update price display
+    currentPrice = currentBTCPrice;
+    updatePriceDisplay(currentBTCPrice);
+    
+    // Update price change percentage directly from API
+    updateChangePercentage(priceChange24h);
+    
+    // Display initial timeframe
+    displayTimeframe('day');
+    
+    document.getElementById('loading').style.display = 'none';
+    return true; // Successfully loaded data
+  } catch (error) {
+    console.error('Error fetching historical data:', error);
+    document.getElementById('loading').textContent = 'خطا در بارگذاری داده‌ها';
+    showErrorOverlay();
+    throw error; // Propagate error for promise handling
+  }
+}
+
+// Process CryptoCompare data
+function processCryptoCompareData(data, timeframe) {
+  const labels = [];
+  const prices = [];
+  const timestamps = [];
+  
+  // CryptoCompare returns data as objects with time and close properties
+  let dataArray = data;
+  
+  // For yearly data, sample fewer points to avoid overcrowding
+  if (timeframe === 'year' && dataArray.length > 52) {
+    // For yearly data, sample approximately weekly data points
+    const samplingRate = Math.floor(dataArray.length / 52);
+    dataArray = dataArray.filter((_, index) => index % samplingRate === 0);
+  }
+  
+  dataArray.forEach(item => {
+    const timestamp = item.time * 1000; // CryptoCompare timestamp is in seconds, convert to milliseconds
+    const price = item.close;           // We use the closing price
+    
+    timestamps.push(timestamp);
+    labels.push(formatDate(timestamp, timeframe));
+    prices.push(price);
+  });
+  
+  return { labels, prices, timestamps };
+}
+
+// Switch to display different timeframe data
+function displayTimeframe(timeframe) {
+  const data = allPriceData[timeframe];
+  
+  if (!data || !data.prices.length) return;
+  
+  // Update chart
+  priceChart.data.labels = data.labels;
+  priceChart.data.datasets[0].data = data.prices;
+  priceChart.update();
+  
+  // Calculate and display change percentage if not the day view
+  // For day view, we already have the 24h change from the API
+  if (timeframe !== 'day') {
+    const firstPrice = data.prices[0];
+    const lastPrice = data.prices[data.prices.length - 1];
+    const changePercent = ((lastPrice - firstPrice) / firstPrice) * 100;
+    updateChangePercentage(changePercent);
+  }
+}
+
+// Change timeframe function
+function changeTimeFrame(timeframe) {
+  // Update active timeframe display
+  document.querySelectorAll('.time-filter').forEach(el => {
+    el.classList.remove('active');
+  });
+  document.getElementById(timeframe).classList.add('active');
+  
+  currentTimeFrame = timeframe;
+  
+  // Display data for selected timeframe
+  displayTimeframe(timeframe);
+}
+
+// Use static price when all else fails
+function useStaticPrice() {
+  const staticPrice = 0; // Example static price
+  updatePriceDisplay(staticPrice);
+  updateChangePercentage(1.2); // Example change
+  
+  document.getElementById('price-equivalent').textContent += '';
+}
+
+// Function to hide the loading overlay
+function hideLoadingOverlay() {
+  const overlay = document.getElementById('loading-overlay');
+  overlay.style.opacity = '0';
+  overlay.style.transition = 'opacity 0.5s ease';
+  
+  // Remove from DOM after fade out
+  setTimeout(() => {
+    overlay.style.display = 'none';
+  }, 500);
+}
+
+// Function to show error overlay
+function showErrorOverlay() {
+  const errorOverlay = document.getElementById('error-overlay');
+  errorOverlay.classList.add('visible');
+}
+
+// Function to hide error overlay
+function hideErrorOverlay() {
+  const errorOverlay = document.getElementById('error-overlay');
+  errorOverlay.classList.remove('visible');
+}
+
+// Function to retry data loading
+async function retryDataLoading() {
+  // Hide error overlay
+  hideErrorOverlay();
+  
+  // Show loading overlay
+  const loadingOverlay = document.getElementById('loading-overlay');
+  loadingOverlay.style.display = 'flex';
+  loadingOverlay.style.opacity = '1';
+  
+  try {
+    // Add a small delay before retrying to avoid rate limits
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Try to fetch data again
+    await fetchAllHistoricalData();
+    
+    // Hide loading overlay if successful
+    setTimeout(hideLoadingOverlay, 500);
+  } catch (error) {
+    console.error('Retry failed:', error);
+    // Hide loading overlay and show error overlay again
+    hideLoadingOverlay();
+    setTimeout(showErrorOverlay, 500);
+  }
+}
+
+// Initialize everything when page loads
+window.onload = function() {
+  // Set up the chart
+  initChart();
+  
+  // Add event listener for retry button
+  document.getElementById('retry-button').addEventListener('click', retryDataLoading);
+  
+  // Fetch all historical data at once
+  fetchAllHistoricalData()
+    .then(() => {
+      // Hide loading overlay when data is loaded
+      setTimeout(hideLoadingOverlay, 500); // Additional delay for smoother transition
+    })
+    .catch(error => {
+      console.error('Error initializing data:', error);
+      // Hide loading overlay even if there's an error, the error overlay will be shown
+      setTimeout(hideLoadingOverlay, 500);
+    });
+};
+  </script>
+</body>
+</html>
